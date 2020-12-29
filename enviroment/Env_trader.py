@@ -24,15 +24,16 @@ class Env_trader():
         self.VV = []
         self.saida = pd.DataFrame(columns=['tipo','entrada','saida','ganho','inicio','fim','duracao','ganhofinal','acumulado','recompensas'])
         self.rewards = []
+        self.atual = 0
+        self.result = 0
         
         
-    def agente(self,dados,acao,stop,gain,verbose=0):
+    def agente(self,dados,acao,stop,gain,verbose=0,forma=0):
         self.cont += 1    
         self.posicao = 0
+        self.result = 0
         if acao == 0:
             p = 0
-            # self.posicao = self.verifica(dados,gain,stop,verbose)
-            # return self.CC,self.VV, self.saida,self.ficha,self.comprado,self.vendido,self.valor
         elif acao == 1 and self.comprado == False:
             if self.ficha == 0:
                 self.ficha = 1
@@ -42,9 +43,7 @@ class Env_trader():
                 self.ficha = 0
                 self.comprado = False
                 self.vendido = False
-            # self.rewards.append(dados[6])
             self.posicao = self.compra(dados[1],dados[0],self.ficha,verbose)
-            # self.verifica(dados,gain,stop,verbose)
             
         elif acao == 2 and self.vendido == False: 
             if self.ficha == 0:
@@ -55,14 +54,10 @@ class Env_trader():
                 self.ficha = 0
                 self.vendido = False
                 self.comprado = False
-            # self.rewards.append(dados[6])
             self.posicao = self.venda(dados[1],dados[0],self.ficha,verbose)
-            # self.verifica(dados,gain,stop,verbose)
             
         if self.ficha == 1:
             rec = self.valor -dados[4]
-            # self.posicao = self.verifica(dados,gain,stop,verbose)
-            # self.imprimi(dados)
             if self.vendido:
                 self.rewards.append(rec)
             else:
@@ -89,10 +84,45 @@ class Env_trader():
             print('Qtd: ',self.contC,self.contV)
             print('##########################')
         recompensa = 0
-        if self.comprado:
-            recompensa = dados[4] - self.valor 
-        if self.vendido:
-            recompensa = self.valor - dados[4]
+        
+        if forma == 0:
+            if self.comprado:
+                recompensa = dados[4] - self.valor 
+            if self.vendido:
+                recompensa = self.valor - dados[4]
+        if forma == 1:
+            # print('forma: ',forma,self.comprado,self.vendido,self.atual)
+            if self.comprado == False and self.vendido == False:
+                self.atual = 0
+            # if self.vendido == False:
+            #     self.atual = 0
+            if self.comprado:
+                recompensa = dados[4] - self.valor
+                if self.atual == 0:
+                    # print(self.atual)
+                    self.atual = recompensa
+                else:
+                    dif = recompensa - self.atual
+                    # print('dif: ',dif)
+                    self.atual = recompensa
+                    # print('atual ',recompensa)
+                    # print('---------------------')
+                    recompensa = dif
+            if self.vendido:
+                recompensa = self.valor - dados[4]
+                if self.atual == 0:
+                    self.atual = recompensa
+                else:
+                    dif = recompensa - self.atual
+                    # print('dif: ',dif)
+                    self.atual = recompensa
+                    # print('atual ',recompensa)
+                    # print('---------------------')
+                    recompensa = dif
+        if forma == 2:
+            recompensa = 0
+            if self.posicao == 4 or self.posicao == 2:
+                recompensa = self.result
                 
         return self.CC,self.VV, self.saida,self.ficha,self.comprado,self.vendido,recompensa
                 
@@ -166,18 +196,18 @@ class Env_trader():
                 print('recompensas: ',self.rewards)
                 print('********************')
                 print('        ')
-            result = self.valor - entrada
+            self.result = self.valor - entrada
             tempo = self.Duracao(self.hora,hora)
-            self.VV.append(result)
+            self.VV.append(self.result)
             self.ficha = 0
             self.saida = self.saida.append({'tipo': 'venda',
                                             'entrada':self.valor,
                                             'saida':entrada,
-                                            'ganho': result,
+                                            'ganho': self.result,
                                             'inicio':self.hora,
                                             'fim':hora,
                                             'duracao': tempo,
-                                            'ganhofinal': result - tempo,
+                                            'ganhofinal': self.result - tempo,
                                             'acumulado': sum(self.saida.ganhofinal),
                                             'recompensas': self.rewards}, ignore_index=True)
             self.rewards = []
@@ -209,32 +239,22 @@ class Env_trader():
                 print('recompensas: ',self.rewards)
                 print('********************')
                 print('        ')
-            result = entrada - self.valor
+            self.result = entrada - self.valor
             tempo = self.Duracao(self.hora,hora)
-            self.CC.append(result )
+            self.CC.append(self.result )
             self.ficha = 0
             self.saida = self.saida.append({'tipo': 'compra',
                                             'entrada':self.valor,
                                             'saida':entrada,
-                                            'ganho': result,
+                                            'ganho': self.result,
                                             'inicio':self.hora,
                                             'fim':hora,
                                             'duracao': tempo,
-                                            'ganhofinal': result - tempo,
+                                            'ganhofinal': self.result - tempo,
                                             'acumulado': sum(self.saida.ganhofinal),
                                             'recompensas': self.rewards}, ignore_index=True)
             self.rewards = []
-            return 4
-    def alvo(self,stop,gain,dados):
-        # print('Hora: ',dados[0])
-        # print('Open: ',dados[1])
-        # print('High: ',dados[2])
-        # print('Low: ',dados[3])
-        # print('close: ',dados[4])
-        x1 = entrada -self.valor
-        if self.comprado == true:
-            return 0
-            
+            return 4          
         
     def Duracao(self,base1a,base2a):
         base1 = float(base1a.split(':')[1])
