@@ -33,7 +33,7 @@ class Env_trader():
         self.posicao = 0
         self.result = 0
         if acao == 0:
-            p = 0
+            recompensa = 0
         elif acao == 1 and self.comprado == False:
             if self.ficha == 0:
                 self.ficha = 1
@@ -91,22 +91,15 @@ class Env_trader():
             if self.vendido:
                 recompensa = self.valor - dados[4]
         if forma == 1:
-            # print('forma: ',forma,self.comprado,self.vendido,self.atual)
             if self.comprado == False and self.vendido == False:
                 self.atual = 0
-            # if self.vendido == False:
-            #     self.atual = 0
             if self.comprado:
                 recompensa = dados[4] - self.valor
                 if self.atual == 0:
-                    # print(self.atual)
                     self.atual = recompensa
                 else:
                     dif = recompensa - self.atual
-                    # print('dif: ',dif)
                     self.atual = recompensa
-                    # print('atual ',recompensa)
-                    # print('---------------------')
                     recompensa = dif
             if self.vendido:
                 recompensa = self.valor - dados[4]
@@ -114,10 +107,7 @@ class Env_trader():
                     self.atual = recompensa
                 else:
                     dif = recompensa - self.atual
-                    # print('dif: ',dif)
                     self.atual = recompensa
-                    # print('atual ',recompensa)
-                    # print('---------------------')
                     recompensa = dif
         if forma == 2:
             recompensa = 0

@@ -5,23 +5,25 @@ from agent.AI_Trader import AI_Trader
 from enviroment.Env_trader import Env_trader
 
 #Hiperparametros
-num_days = 550
+num_days = 5500
 window_size = 1
 action_space = 3
-episodes = 10
+episodes = 1
 stop = -300
 gain = 300
 batch_size = 256
-with tf.device('/GPU:0'):
+tuner = True
+with tf.device('/CPU:0'):
     data = Data(num_days,window_size)
     
     input_rnn,input_trader,base,media,std= data.import_data()
-    print(media)
-    print(std)
     env_trader = Env_trader()
-    agent = AI_Trader(state_size=window_size,state_sizex =input_rnn.shape[2], action_space=action_space)
+    agent = AI_Trader(state_size=window_size,
+                      state_sizex =input_rnn.shape[2], 
+                      action_space=action_space,
+                      tuner=tuner)
     
-    agent.model.summary()
+    # agent.model().summary()
     
     def discount_rewards(reward,contador,done,a,f,action,agent):
         reward = reward - contador
@@ -35,7 +37,6 @@ with tf.device('/GPU:0'):
                 done = True
             agent.memory.append([a[(contador-1)-step],action[(contador-1)-step],desconto[step],f[(contador-1)-step],done])
 
-    
     media = []
     estado = []
     estado_futuro = []
@@ -78,17 +79,7 @@ with tf.device('/GPU:0'):
                     estado_futuro = []
                     action_memoria = []
                 ficha = False
-            # print('------------------------------')
-            # print('action: ',action)
-            # print('comprado: ',comprado)
-            # print('vendido: ',vendido)
-            # print('reward: ',reward)
-            # print('epsilon: ',agent.epsilon)
-            # print('done: ',done)
-            # print('Em operação: ',ficha)
-            # print('t: ',t,' tamanho: ',len(input_trader))
-            # agent.memory.append([input_rnn[t],action,reward,input_rnn[t],done])
-            if t%540 == 0 and t > 10:
+            if t%5400 == 0 and t > 10:
                 t2 = time.time() - t1
                 print('-----------------------------')
                 print('tempo gasto amostra: ',t2, 'tamanho da memoria: ',len(agent.memory))
