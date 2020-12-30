@@ -70,12 +70,14 @@ class AI_Trader():
         return model
     def model(self):
         model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.Dense(units=32,activation='relu',input_shape=(self.state_size,self.state_sizex)))
-        model.add(tf.keras.layers.Dense(units=160 ,activation='relu'))
-        model.add(tf.keras.layers.Dense(units=128,activation='relu'))
-        model.add(tf.keras.layers.Dense(units=3,activation='softsign'))
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate =0.001),
-                  loss='mse',
+        model.add(tf.keras.layers.Dense(units=464,activation='gelu',kernel_initializer='he_uniform',input_shape=(self.state_size,self.state_sizex)))
+        model.add(tf.keras.layers.Dense(units=448 ,activation='relu'))
+        model.add(tf.keras.layers.Dense(units=480,activation='elu'))
+        model.add(tf.keras.layers.Dense(units=416,activation='linear'))
+        model.add(tf.keras.layers.Dense(units=224,activation='gelu'))
+        model.add(tf.keras.layers.Dense(units=3,activation='softmax'))
+        model.compile(optimizer='Adam',
+                  loss='log_cosh',
                   metrics=['accuracy'])
         return model
     def trade(self,state):
@@ -107,10 +109,11 @@ class AI_Trader():
             target = self.model.predict(state)
             target[0][action] = b.numpy()[0]
             if self.tuner:
+                print('andando')
                 state_batch.append(state.tolist())
                 target_batch.append(target.tolist())
             else:
-                self.model.fit(state,target,epochs=1,verbose=0)
+                self.model.fit(state,target,epochs=50,verbose=0)
         if self.tuner:
             state_batch = np.array(state_batch)
             target_batch = np.array(target_batch)
