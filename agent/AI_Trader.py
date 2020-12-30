@@ -24,19 +24,48 @@ class AI_Trader():
         self.model = self.model() 
     def model_builder(self,hp):
         model = tf.keras.models.Sequential()
-        hp_units = hp.Int('units', min_value = 32, max_value = 512, step = 32)
-        hp_units = hp.Int('units', min_value = 32, max_value = 512, step = 32)
-        hp_units = hp.Int('units', min_value = 32, max_value = 512, step = 32)
-        hp_units = hp.Int('units', min_value = 32, max_value = 512, step = 32)
-        hp_units = hp.Int('units', min_value = 32, max_value = 512, step = 32)
-        hp_learning_rate = hp.Choice('learning_rate', values = [1e-2, 1e-3, 1e-4]) 
-        model.add(tf.keras.layers.Dense(units=32,activation='relu',input_shape=(self.state_size,self.state_sizex)))
-        model.add(tf.keras.layers.Dense(units=hp_units,activation='relu'))
-        model.add(tf.keras.layers.Dense(units=64,activation='relu'))
-        model.add(tf.keras.layers.Dense(units=128,activation='relu'))
-        model.add(tf.keras.layers.Dense(units=3,activation='softsign'))       
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate = hp_learning_rate),
-              loss='mse',
+        hp_units1 = hp.Int('units1', min_value = 16, max_value = 512, step = 32)
+        hp_units2 = hp.Int('units2', min_value = 32, max_value = 512, step = 32)
+        hp_units3 = hp.Int('units3', min_value = 32, max_value = 512, step = 32)
+        hp_units4 = hp.Int('units4', min_value = 32, max_value = 512, step = 32)
+        hp_units5 = hp.Int('units5', min_value = 32, max_value = 512, step = 32)
+        # hp_learning_rate = hp.Choice('learning_rate', values = [1e-2, 1e-3, 1e-4]) 
+        hp_function1 = hp.Choice('function1', values = ['relu','selu', 'elu',
+                                                      'softmax','sigmoid','linear',
+                                                      'softplus','softsign','tanh','gelu']) 
+        hp_function2 = hp.Choice('function2', values = ['relu','selu', 'elu',
+                                                      'softmax','sigmoid','linear',
+                                                      'softplus','softsign','tanh','gelu'])
+        hp_function3 = hp.Choice('function3', values = ['relu','selu', 'elu',
+                                                      'softmax','sigmoid','linear',
+                                                      'softplus','softsign','tanh','gelu'])
+        hp_function4 = hp.Choice('function4', values = ['relu','selu', 'elu',
+                                                      'softmax','sigmoid','linear',
+                                                      'softplus','softsign','tanh','gelu'])
+        hp_function5 = hp.Choice('function5', values = ['relu','selu', 'elu',
+                                                      'softmax','sigmoid','linear',
+                                                      'softplus','softsign','tanh','gelu'])
+        hp_function6 = hp.Choice('function6', values = ['relu','selu', 'elu',
+                                                      'softmax','sigmoid','linear',
+                                                      'softplus','softsign','tanh','gelu'])
+        hp_kernel = hp.Choice('kernel', values = ['glorot_uniform','glorot_normal','lecun_normal','lecun_uniform','he_normal','he_uniform']) 
+        hp_optimizer =hp.Choice('optimizer', values = [ 'Adam','RMSprop','SGD','Nadam','Adamax','Adagrad','Adadelta']) 
+        hp_loss =hp.Choice('loss', values = ['mae',
+                                            'mse',
+                                            'mape',
+                                            'log_cosh',
+                                            'huber_loss',
+                                            'poisson'])
+                                                                            
+                
+        model.add(tf.keras.layers.Dense(units=hp_units1,activation=hp_function1,kernel_initializer=hp_kernel,input_shape=(self.state_size,self.state_sizex)))
+        model.add(tf.keras.layers.Dense(units=hp_units2,activation=hp_function2))
+        model.add(tf.keras.layers.Dense(units=hp_units3,activation=hp_function3))
+        model.add(tf.keras.layers.Dense(units=hp_units4,activation=hp_function4))
+        model.add(tf.keras.layers.Dense(units=hp_units5,activation=hp_function5))
+        model.add(tf.keras.layers.Dense(units=3,activation=hp_function6))       
+        model.compile(optimizer=hp_optimizer,
+              loss= hp_loss ,
               metrics=['accuracy'])
         return model
     def model(self):
@@ -76,19 +105,7 @@ class AI_Trader():
                 a = tf.constant([reward1], dtype = tf.float32)
             b = tf.keras.activations.softsign(a)
             target = self.model.predict(state)
-            # print(y,'-',b.numpy(),action)
             target[0][action] = b.numpy()[0]
-            # print('contador: ',y)
-            # print('alvo: ',target)
-            # print('action: ',action)
-            # print('state: ',state)
-            # print('reward : ',reward)
-            # print('reward: ',reward1)
-            # print('prev: ',prev)
-            # print('gama: ',self.gamma)
-            # print('teste: ',b.numpy()[0])
-            # print('done: ',done)
-            # print('-----------------------')
             if self.tuner:
                 state_batch.append(state.tolist())
                 target_batch.append(target.tolist())
@@ -108,21 +125,24 @@ class AI_Trader():
         print(' ')
         print('--------------------------------')
         tuner = kt.Hyperband(self.model_builder,
-                     objective ='loss', 
+                     objective ='accuracy', 
                      # hyperparameters=self.hp,
-                     max_epochs = 10,
+                     max_epochs = 100,
                      factor = 3,
                      directory = 'my_dir',
                      project_name = 'intro_to_kt')
-        tuner.search(state, target, epochs = 10, callbacks = [ClearTrainingOutput()])
+        tuner.search(state, target, epochs = 100, callbacks = [ClearTrainingOutput()])
         best_hps = tuner.get_best_hyperparameters(num_trials = 1)[0]
         print('--------------------------------')
         print(' ')
         # print(best_hps)
         print(f"""
             The hyperparameter search is complete. The optimal number of units in the first densely-connected
-            layer is {best_hps.get('units')} and the optimal learning rate for the optimizer
-            is {best_hps.get('learning_rate')}.
+            layer is {best_hps.get('units1')},{best_hps.get('units2')},{best_hps.get('units3')},{best_hps.get('units4')},
+            {best_hps.get('units5')},and the activation function is
+            {best_hps.get('function1')},{best_hps.get('function2')},{best_hps.get('function3')},{best_hps.get('function4')},
+            {best_hps.get('function5')},{best_hps.get('function6')},
+            and optimizer is {best_hps.get('optimizer')}.and loss is {best_hps.get('loss')}, and kernel is {best_hps.get('kernel')}
             """)
         print(' ')
         print('--------------------------------')
