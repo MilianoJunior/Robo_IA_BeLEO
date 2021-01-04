@@ -7,6 +7,7 @@ Created on Mon Dec 21 14:25:56 2020
 import chardet
 import pandas as pd
 import numpy as np
+
 class Data():
     def __init__(self,num_days,size=int):
         self.num_days = num_days
@@ -15,9 +16,10 @@ class Data():
         with open('data/M4.csv', 'rb') as f:
             result = chardet.detect(f.read())  # or readline if the file is large
     
-        base = pd.read_csv('data/M4.csv', encoding=result['encoding'])
+        base = pd.read_csv('data/M4.csv', encoding=result['encoding'])     
+        
         base1 = pd.DataFrame(data=base[-self.num_days:-1].values,columns=base.columns)
-        base1 = base1.drop(['open', 'high', 'low', 'close','OBV','Acumulacao'], axis=1)
+        base1 = base1.drop(['open', 'high', 'low', 'close','VOL','OBV','Acumulacao','Force','band1', 'band2', 'band3'], axis=1)
         entrada_rnn,entrada_trader,media,std = self.training_assess(base,self.num_days)
         entrada_rnn = self.batch_size(entrada_rnn, self.size)
         return entrada_rnn,entrada_trader,base1,media,std
@@ -35,9 +37,9 @@ class Data():
                                                             'Momentum', 'Force']):
         colunas1 = ['Hora', 'open', 'high', 'low', 'close'] 
         # colunas2 = ['Hora', 'dif'] 
-        entrada_RNN = pd.DataFrame(data=base[-num_days:-1].values,columns=base.columns)      
-        entrada_trade = pd.DataFrame(data=base[-num_days:-1].values,columns=base.columns)
-        entrada_RNN = entrada_RNN.drop(['Data', 'open', 'high', 'low', 'close','OBV','Acumulacao'], axis=1)
+        entrada_RNN = pd.DataFrame(data=base[-num_days:-330].values,columns=base.columns)      
+        entrada_trade = pd.DataFrame(data=base[-num_days:-330].values,columns=base.columns)
+        entrada_RNN = entrada_RNN.drop(['Data', 'open', 'high', 'low', 'close','VOL','OBV','Acumulacao','Force','band1', 'band2', 'band3'], axis=1)
         # entrada_RNN = entrada_RNN[colunas2]
         entrada_trade = entrada_trade[colunas1]
         entrada_RNN = self.duration(entrada_RNN)

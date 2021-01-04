@@ -14,14 +14,18 @@ class AI_Trader():
         self.state_size = state_size
         self.action_space = action_space
         self.state_sizex = state_sizex
-        self.memory = deque(maxlen = 20000)
-        
+        self.memory = deque(maxlen = 50000)
+        self.filtro_memory = deque(maxlen = 50000)
+        print('   ')
+        print('entradas: ',self.state_size,self.state_sizex)
+        print('   ')
         self.tuner = tuner 
         self.gamma = 0.95
         self.epsilon = 0.2
         self.epsilon_final = 0.01
         self.epsilon_decay = 0.95
         self.model = self.model() 
+        self.model_filter = self.model_filter() 
     def model_builder(self,hp):
         model = tf.keras.models.Sequential()
         hp_units1 = hp.Int('units1', min_value = 16, max_value = 512, step = 32)
@@ -68,25 +72,39 @@ class AI_Trader():
               loss= hp_loss ,
               metrics=['accuracy'])
         return model
+    def model_filter(self):
+        model = tf.keras.models.Sequential()
+        model.add(tf.keras.layers.Dense(units=32,activation='relu',kernel_initializer='glorot_normal',input_shape=(self.state_size,self.state_sizex)))
+        model.add(tf.keras.layers.Dense(units=128,activation='relu'))
+        model.add(tf.keras.layers.Dense(units=1,activation='linear'))
+        model.compile(optimizer='Adam',
+                  loss='mse',
+                  metrics=['accuracy'])
+        return model
     def model(self):
         model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.Dense(units=464,activation='gelu',kernel_initializer='he_uniform',input_shape=(self.state_size,self.state_sizex)))
-        model.add(tf.keras.layers.Dense(units=448 ,activation='relu'))
-        model.add(tf.keras.layers.Dense(units=480,activation='elu'))
-        model.add(tf.keras.layers.Dense(units=416,activation='linear'))
-        model.add(tf.keras.layers.Dense(units=224,activation='gelu'))
-        model.add(tf.keras.layers.Dense(units=3,activation='softmax'))
+        model.add(tf.keras.layers.Dense(units=32,activation='relu',kernel_initializer='glorot_normal',input_shape=(self.state_size,self.state_sizex)))
+        model.add(tf.keras.layers.Dense(units=128 ,activation='relu'))
+        model.add(tf.keras.layers.Dense(units=256,activation='relu'))
+        model.add(tf.keras.layers.Dense(units=256,activation='relu'))
+        model.add(tf.keras.layers.Dense(units=128,activation='relu'))
+        model.add(tf.keras.layers.Dense(units=3,activation='softsign'))
         model.compile(optimizer='Adam',
-                  loss='log_cosh',
+                  loss='mse',
                   metrics=['accuracy'])
         return model
     def trade(self,state):
         if random.random() <= self.epsilon:
-            return random.randrange(self.action_space)
+            # filters = self.model_filter.predict(state) 
+            return random.randrange(self.action_space) #,filters
         actions = self.model.predict(state)
-        return np.argmax(actions[0])
+        # filters = self.model_filter.predict(state) 
+        return np.argmax(actions[0]) #,filters
     
     def batch_train(self,batch_size):
+        
+        
+        #---------------------------------------------
         batch = []
         state_batch =[]
         target_batch = []
@@ -109,11 +127,10 @@ class AI_Trader():
             target = self.model.predict(state)
             target[0][action] = b.numpy()[0]
             if self.tuner:
-                print('andando')
                 state_batch.append(state.tolist())
                 target_batch.append(target.tolist())
             else:
-                self.model.fit(state,target,epochs=50,verbose=0)
+                self.model.fit(state,target,epochs=5,verbose=0)
         if self.tuner:
             state_batch = np.array(state_batch)
             target_batch = np.array(target_batch)
@@ -128,7 +145,7 @@ class AI_Trader():
         print(' ')
         print('--------------------------------')
         tuner = kt.Hyperband(self.model_builder,
-                     objective ='accuracy', 
+                     objective ='loss', 
                      # hyperparameters=self.hp,
                      max_epochs = 100,
                      factor = 3,
